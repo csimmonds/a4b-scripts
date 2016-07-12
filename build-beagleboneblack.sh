@@ -51,11 +51,6 @@ echo "Building Android (first time)"
 make -j8
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 
-$ cd ~/aosp/hardware/ti/sgx
-$ PATH=$HOME/aosp/prebuilts/gcc/linux-x86/arm/arm-eabi-4.6/bin:$PATH
-$ make TARGET_PRODUCT=beagleboneblack OMAPES=4.x ANDROID_ROOT_DIR=$HOME/aosp W=1
-$ make TARGET_PRODUCT=beagleboneblack OMAPES=4.x ANDROID_ROOT_DIR=$HOME/aosp W=1 install 
-
 echo "Building the SGX drivers"
 cd $ANDROID_BUILD_TOP/hardware/ti/sgx
 OUT_SAVED=$OUT
