@@ -2,6 +2,12 @@
 
 DEVICE_DIR=device/beagleboard/beagleboneblack
 
+# The number of CPU cores to use for Android compilation. Default is
+# all of them, but you can override by setting CORES
+if [ -z $CORES ]; then
+	CORES=$(getconf _NPROCESSORS_ONLN)
+fi
+
 if [ -z $ANDROID_BUILD_TOP ]; then
 	echo "Please 'source build/envsetup.sh' and run 'lunch' first"
 	exit
@@ -12,59 +18,52 @@ if [ $TARGET_PRODUCT != "beagleboneblack" -a $TARGET_PRODUCT != "beagleboneblack
 	exit
 fi
 
-if [ `javac -version |& cut -d " " -f 2 | cut -b 1-3` != "1.6" ]; then
-        echo "Missing JDK or not version 1.6"
+if [ `javac -version |& cut -d " " -f 2 | cut -b 1-3` != "1.7" ]; then
+        echo "Missing JDK or not version 1.7"
         exit
 fi
 
-echo "Building $TARGET_PRODUCT"
+echo "Building $TARGET_PRODUCT using $CORES cpu cores"
+echo ""
+echo "Building kernel"
+cd $ANDROID_BUILD_TOP/bb-kernel
+if [ $? != 0 ]; then echo "ERROR"; exit; fi
 
-# Patch AOSP
-if [ ! -e system/core/patched ]; then
-	echo "Patching AOSP"
-	cd system/core
-	patch -p1 < ../../${DEVICE_DIR}/0001-Fix-CallStack-API.patch
+if [ ! -d patches/a4b ]; then
+	mkdir patches/a4b
+	cp  $ANDROID_BUILD_TOP/$DEVICE_DIR/bb-kernel-patches/0001-Add-reboot-reason-driver-for-am33xx.patch patches/a4b
 	if [ $? != 0 ]; then echo "ERROR"; exit; fi
-	echo "patched" > patched
-	cd ../..
+	cp $ANDROID_BUILD_TOP/$DEVICE_DIR/bb-kernel-patches/config-bbb-rcn-3.8.13 patches/defconfig 
+	if [ $? != 0 ]; then echo "ERROR"; exit; fi
+	patch -p1 < $ANDROID_BUILD_TOP/$DEVICE_DIR/bb-kernel-patches/0001-Add-a4b-patch.patch
+	if [ $? != 0 ]; then echo "ERROR"; exit; fi
 fi
+
+AUTO_BUILD=1 ./build_kernel.sh
+if [ $? != 0 ]; then echo "ERROR"; exit; fi
+
+# Append the dtb to zImage because the Android build doesn't know about dtbs
+cat KERNEL/arch/arm/boot/zImage KERNEL/arch/arm/boot/dts/am335x-boneblack.dtb > zImage-dtb
+if [ $? != 0 ]; then echo "ERROR"; exit; fi
+
+cp zImage-dtb $ANDROID_BUILD_TOP/$DEVICE_DIR
+if [ $? != 0 ]; then echo "ERROR"; exit; fi
+cd $ANDROID_BUILD_TOP
 
 echo "Building U-Boot"
 cd $ANDROID_BUILD_TOP/u-boot
-make CROSS_COMPILE=arm-eabi- am335x_evm_config
+# The Android prebuilt gcc fails to build U-Boot, so use the Linaro gcc which
+# was installed to build the bb-kernel
+. ../bb-kernel/.CC
+make CROSS_COMPILE=$CC am335x_evm_config
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
-make CROSS_COMPILE=arm-eabi-
-if [ $? != 0 ]; then echo "ERROR"; exit; fi
-
-echo "Building kernel"
-cd $ANDROID_BUILD_TOP/kernel
-
-make ARCH=arm CROSS_COMPILE=arm-eabi- am335x_evm_android_defconfig
-if [ $? != 0 ]; then echo "ERROR"; exit; fi
-make -j4 ARCH=arm CROSS_COMPILE=arm-eabi- uImage
+make CROSS_COMPILE=$CC
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 cd $ANDROID_BUILD_TOP
-cp kernel/arch/arm/boot/zImage ${DEVICE_DIR}
 
-echo "Building Android (first time)"
+echo "Building Android"
 
-make -j8
-if [ $? != 0 ]; then echo "ERROR"; exit; fi
-
-echo "Building the SGX drivers"
-cd $ANDROID_BUILD_TOP/hardware/ti/sgx
-OUT_SAVED=$OUT
-unset OUT
-make TARGET_PRODUCT=beagleboneblack OMAPES=4.x ANDROID_ROOT_DIR=$ANDROID_BUILD_TOP W=1
-if [ $? != 0 ]; then echo "ERROR"; exit; fi
-make TARGET_PRODUCT=beagleboneblack OMAPES=4.x ANDROID_ROOT_DIR=$ANDROID_BUILD_TOP install
-if [ $? != 0 ]; then echo "ERROR"; exit; fi
-OUT=$OUT_SAVED
-
-echo "Building Android (second time)"
-
-cd $ANDROID_BUILD_TOP
-make -j8
+make -j${CORES}
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 
 echo "SUCCESS! Everything built for $TARGET_PRODUCT"

@@ -97,7 +97,13 @@ sudo cp uRamdisk /mnt
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 sudo cp ${DEVICE_DIR}/uEnv.txt /mnt
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
-sudo cp kernel/arch/arm/boot/uImage /mnt
+
+# Generate uImage with dtb
+bb-kernel/KERNEL/scripts/mkuboot.sh -A arm -O linux -C none  -T kernel -a 0x80008000 -e 0x80008000 -n 'Linux-3.8.13+' -d bb-kernel/zImage-dtb bb-kernel/uImage-dtb
+if [ $? != 0 ]; then echo "ERROR"; exit; fi
+
+
+sudo cp bb-kernel/uImage-dtb /mnt/uImage
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 sudo umount /mnt
 
@@ -106,7 +112,7 @@ echo "Writing system"
 sudo dd if=${ANDROID_PRODUCT_OUT}/system.img of=$SYSTEM_PART bs=1M
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 sudo e2label $SYSTEM_PART system
-echo "Writing userdata"
+echo "Writing userdata (takes a long time)"
 sudo dd if=${ANDROID_PRODUCT_OUT}/userdata.img of=$USER_PART bs=1M
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 sudo e2label $USER_PART userdata
@@ -115,6 +121,6 @@ sudo dd if=${ANDROID_PRODUCT_OUT}/cache.img of=$CACHE_PART bs=1M
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 sudo e2label $CACHE_PART cache
 
-echo "SUCCESS! SD card written with Android 4.4.4_r2. Enjoy"
+echo "SUCCESS! Andrdoid4Beagle installed on the uSD card. Enjoy"
 
 exit 0
