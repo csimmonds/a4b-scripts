@@ -4,8 +4,6 @@
 # can be used for instaling Android into the internal eMMC flash
 # memory, using the fastboot support built into U-Boot
 
-DEVICE_DIR=device/beagleboard/beagleboneblack
-
 function version_gt() { test "$(echo "$@" | tr " " "\n" | sort -V | head -n 1)" != "$1"; }
 
 # Format an SD card for Android on BeagelBone Black
@@ -17,11 +15,6 @@ if [ $# -ne 1 ]; then
 fi
 
 DRIVE=$1
-
-if [ x$TARGET_PRODUCT != "xbeagleboneblack" ]; then
-	echo "Please run 'lunch' and select beagleboneblack"
-	exit
-fi
 
 # Check the drive exists in /sys/block
 if [ ! -e /sys/block/${DRIVE}/size ]; then
