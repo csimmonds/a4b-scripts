@@ -32,11 +32,10 @@ if [ $? != 0 ]; then echo "ERROR"; exit; fi
 if [ ! -d patches/a4b ]; then
 	mkdir patches/a4b
 	cp $ANDROID_BUILD_TOP/$DEVICE_DIR/ti-kernel-patches/config-android-4.1 patches/defconfig 
-#	if [ $? != 0 ]; then echo "ERROR"; exit; fi
-#	cp  $ANDROID_BUILD_TOP/$DEVICE_DIR/ti-kernel-patches/0001-Add-reboot-reason-driver-for-am33xx.patch patches/a4b
-#	if [ $? != 0 ]; then echo "ERROR"; exit; fi
-#	patch -p1 < $ANDROID_BUILD_TOP/$DEVICE_DIR/ti-kernel-patches/0001-Add-a4b-patch.patch
-#	if [ $? != 0 ]; then echo "ERROR"; exit; fi
+	if [ $? != 0 ]; then echo "ERROR"; exit; fi
+	cp  $ANDROID_BUILD_TOP/$DEVICE_DIR/ti-kernel-patches/*.patch patches/a4b
+	patch -p1 < $ANDROID_BUILD_TOP/$DEVICE_DIR/ti-kernel-patches/0001-Add-a4b-patch.patch
+	if [ $? != 0 ]; then echo "ERROR"; exit; fi
 fi
 
 AUTO_BUILD=1 ./build_kernel.sh
