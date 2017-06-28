@@ -24,7 +24,7 @@ fi
 
 # Check it is a flash drive (size < 32MiB)
 NUM_SECTORS=`cat /sys/block/${DRIVE}/size`
-if [ $NUM_SECTORS -eq 0 -o $NUM_SECTORS -gt 16000000 ]; then
+if [ $NUM_SECTORS -eq 0 -o $NUM_SECTORS -gt 64000000 ]; then
 	echo "Does not look like an SD card, bailing out"
 	exit 1
 fi
