@@ -43,7 +43,7 @@ if [ $? != 0 ]; then echo "ERROR"; exit; fi
 
 # Append the dtb to zImage because the Android build doesn't know about dtbs
 cd KERNEL
-cat arch/arm/boot/zImage arch/arm/boot/dts/am335x-boneblack-emmc-overlay.dtb > zImage-dtb
+cat arch/arm/boot/zImage arch/arm/boot/dts/am335x-boneblack.dtb > zImage-dtb
 if [ $? != 0 ]; then echo "ERROR"; exit; fi
 
 cp zImage-dtb $ANDROID_BUILD_TOP/$DEVICE_DIR
